@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from core.database import engine, Base
-from models import users
+from models import users, portfolios
 from routes import authentication, portfolio
 from fastapi.middleware.cors import CORSMiddleware
 

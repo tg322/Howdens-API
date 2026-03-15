@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 
 from models.users import UserDetails, Users
-from schemas.users import UsersDetails
+from schemas.users import SafeUser, UsersDetails
 
 async def get_user_account_details_by_email(db:AsyncSession, email:str) -> UsersDetails | None:
     try:
@@ -23,3 +23,22 @@ async def get_user_account_details_by_email(db:AsyncSession, email:str) -> Users
         return row
 
     return UsersDetails.model_validate(row)
+
+async def get_safe_user_by_email(db:AsyncSession, email:str) -> SafeUser | None:
+    try:
+        stmt = (
+            select(Users.id, Users.email)
+            .where(Users.email == email)
+        )
+
+        result = await db.execute(stmt)
+
+    except SQLAlchemyError as exc:
+        raise exc
+    
+    row = result.mappings().one_or_none()
+
+    if row is None:
+        return None
+    
+    return SafeUser.model_validate(row)
