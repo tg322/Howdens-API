@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from core.database import engine, Base
 from models import users
-from routes import authentication
+from routes import authentication, portfolio
 from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
@@ -27,3 +27,4 @@ app.add_middleware(
 )
 
 app.include_router(authentication.router, prefix="/auth", tags=["Auth"])
+app.include_router(portfolio.router, prefix='/portfolio', tags=["portfolio"])
