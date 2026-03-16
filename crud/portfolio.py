@@ -1,8 +1,11 @@
 from datetime import date
+from typing import List
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.portfolios import PortfolioFiles, Portfolios
+from models.users import UserDetails, Users
 from schemas.files import UploadedFile
-from schemas.portfolio import Portfolio, PortfolioFile
+from schemas.portfolio import Portfolio, PortfolioFile, PortfolioItem
 from schemas.users import SafeUser
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -41,3 +44,42 @@ async def insert_portfolio_file(db:AsyncSession, portfolio:Portfolio, uploaded_f
         raise exc
     
     return PortfolioFile.model_validate(obj, from_attributes=True)
+
+async def get_table_portfolios(db:AsyncSession):
+
+    # id:int Porfolio.id
+    # created_by_email:str User.email
+    # created_by_first_name:str UserDetails.first_name
+    # created_by_last_name:str UserDetails.last_name
+    # date_added:date   Portfolio.date_added
+    # title:str Portfolio.title
+
+    try:
+
+        stmt = (
+            select(
+                Portfolios.id, 
+                Users.email.label("created_by_email"), 
+                UserDetails.first_name.label("created_by_first_name"), 
+                UserDetails.last_name.label("created_by_last_name"),
+                Portfolios.date_added,
+                Portfolios.title,
+                func.count(PortfolioFiles.id).label("total_files")
+            )
+            .outerjoin(Users, Users.id == Portfolios.created_by)
+            .join(UserDetails, UserDetails.user_id == Users.id)
+            .outerjoin(PortfolioFiles, PortfolioFiles.portfolio_id == Portfolios.id)
+            .group_by(
+                Portfolios.id,
+                Portfolios.title
+            )
+        )
+
+        result = await db.execute(stmt)
+
+    except SQLAlchemyError as exc:
+        raise exc
+    
+    rows = result.mappings().all()
+
+    return [PortfolioItem.model_validate(r) for r in rows]
